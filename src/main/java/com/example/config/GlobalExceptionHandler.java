@@ -25,7 +25,13 @@ public class GlobalExceptionHandler {
     // 参数校验失败
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidException(MethodArgumentNotValidException e) {
-        return Result.error(400, "参数校验失败");
+        String errorMessage = e.getBindingResult().getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .findFirst()
+                .orElse("参数校验失败");
+        return Result.error(400, errorMessage);
+//        return Result.error(400, "参数校验失败");
     }
 
 

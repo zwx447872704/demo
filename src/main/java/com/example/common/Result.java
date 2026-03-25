@@ -15,7 +15,7 @@ public class Result<T> {
     private Integer code;   // 状态码
     private String message; // 提示信息
     private T data;         // 数据
- 
+
     // 成功
     public static <T> Result<T> success(T data) {
         return Result.<T>builder()
@@ -42,4 +42,6 @@ public class Result<T> {
                 .data(null)
                 .build();
     }
+
+
 }

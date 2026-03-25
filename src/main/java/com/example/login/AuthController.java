@@ -11,6 +11,7 @@ import com.example.login.repository.UserRepository;
 import com.example.util.JwtUtil;
 import com.example.util.RedisService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +35,7 @@ public class AuthController {
     private final JwtProperties jwtProperties;
 
     @PostMapping("/register")
-    public Result<Map<String, String>> register(@RequestBody RegisterRequest request) {
+    public Result<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BusinessException("用户名已存在");

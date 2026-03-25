@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: demo   # 原来的项目名称
+  datasource:
+    url: jdbc:mysql://mysql:3306/mydatabase?useSSL=false&serverTimezone=UTC
+    username: myuser
+    password: secret
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8080   # 项目启动端口，可根据需要修改

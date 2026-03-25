@@ -1,6 +1,8 @@
 package com.example.login;
 
 
+import com.example.common.BusinessException;
+import com.example.common.Result;
 import com.example.login.dto.LoginRequest;
 import com.example.login.dto.RegisterRequest;
 import com.example.login.model.User;
@@ -25,9 +27,10 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostMapping("/register")
-    public Map<String, String> register(@RequestBody RegisterRequest request) {
+    public Result<Map<String, String>> register(@RequestBody RegisterRequest request) {
+
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new BusinessException("用户名已存在");
         }
 
         User user = User.builder()
@@ -37,12 +40,14 @@ public class AuthController {
                 .build();
 
         userRepository.save(user);
+
         String token = jwtUtil.generateToken(user.getUsername());
-        return Map.of("token", token);
+
+        return Result.success(Map.of("token", token));
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody LoginRequest request) {
+    public Result<Map<String, String>> login(@RequestBody LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -51,6 +56,6 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(user.getUsername());
-        return Map.of("token", token);
+        return Result.success(Map.of("token", token));
     }
 }

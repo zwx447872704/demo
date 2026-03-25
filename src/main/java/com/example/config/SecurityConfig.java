@@ -1,6 +1,7 @@
 package com.example.config;
 
 
+import com.example.common.Result;
 import com.example.login.model.User;
 import com.example.login.repository.UserRepository;
 import com.example.util.JwtUtil;
@@ -78,34 +79,65 @@ public class SecurityConfig {
             String username = null;
             String jwt = null;
 
-            // 1️⃣ 解析 token
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // ✅ 放行登录接口（非常重要）
+            String path = request.getRequestURI();
+            if (path.contains("/api/auth/login") || path.contains("/api/auth/register")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // ❌ 1️⃣ 没带 token → 直接 401
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                write401(response, "未认证，请先登录");
+                return;
+            }
+
+            // 2️⃣ 解析 token
+            try {
                 jwt = authHeader.substring(7);
-                try {
-                    username = jwtUtil.extractUsername(jwt);
-                } catch (Exception e) {
-                    System.out.println("JWT 解析失败: " + e.getMessage());
-                }
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                write401(response, "token 解析失败");
+                return;
             }
 
-            // 2️⃣ 校验 token
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                final String finalUsername = username;
-                final String finalJwt = jwt;
-
-                User user = userRepository.findByUsername(finalUsername).orElse(null);
-
-                if (user != null && jwtUtil.validateToken(finalJwt, finalUsername)) {
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(user, null, null);
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+            // ❌ 3️⃣ token 无效
+            if (username == null) {
+                write401(response, "token 无效");
+                return;
             }
 
-            // ✅ 一定要继续执行
+            // 4️⃣ 校验 token
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                User user = userRepository.findByUsername(username).orElse(null);
+
+                if (user == null || !jwtUtil.validateToken(jwt, username)) {
+                    write401(response, "token 校验失败");
+                    return;
+                }
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(user, null, null);
+
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+
+            // ✅ 通过，继续执行
             filterChain.doFilter(request, response);
+        }
+
+        // ✅ 统一返回 401
+        private void write401(HttpServletResponse response, String message) throws IOException {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(401);
+
+            Result<Void> result = Result.error(401, message);
+
+            response.getWriter().write(
+                    new com.fasterxml.jackson.databind.ObjectMapper()
+                            .writeValueAsString(result)
+            );
         }
     }
 }

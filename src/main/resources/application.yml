@@ -10,6 +10,17 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
 
 server:
   port: 8080   # 项目启动端口，可根据需要修改
+
+jwt:
+  secret: mysecretkey123456789012345678901234
+  access-expire: 36000000   # 10小时（毫秒）
+  refresh-expire: 604800    # 7天（秒）
+

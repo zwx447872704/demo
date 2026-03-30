@@ -8,6 +8,7 @@ import com.example.login.dto.LoginRequest;
 import com.example.login.dto.RegisterRequest;
 import com.example.login.model.User;
 import com.example.login.repository.UserRepository;
+import com.example.login.service.AuthService;
 import com.example.util.JwtUtil;
 import com.example.util.RedisService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +35,8 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtProperties jwtProperties;
 
+    private final AuthService authService;
+
     @PostMapping("/register")
     public Result<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
 
@@ -57,25 +60,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public Result<Map<String, String>> login(@RequestBody LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BusinessException("User not found"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BusinessException("Invalid credentials");
-        }
-
-        String accessToken = jwtUtil.generateAccessToken(user.getUsername());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
-
-        // ✅ 存 refreshToken
-        redisService.set(
-                "refresh:" + user.getUsername(),
-                refreshToken,
-                jwtProperties.getRefreshExpire(),
-                TimeUnit.SECONDS
-        );
-
-        return Result.success(Map.of("accessToken", accessToken, "refreshToken", refreshToken));
+        return authService.login(request.getUsername(), request.getPassword());
     }
 
     @PostMapping("/logout")

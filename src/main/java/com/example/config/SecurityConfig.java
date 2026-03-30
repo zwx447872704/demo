@@ -30,6 +30,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
 
+
     // 密码加密器
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -40,21 +41,42 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // ❗ Vaadin 建议不要全关 CSRF（但先这样跑通）
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ 放行登录/注册
+                        // ✅ 放行 API 登录
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // ✅ 放行 swagger
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
+
+                        // ✅ 放行 Vaadin 相关资源（关键🔥）
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/VAADIN/**",
+                                "/frontend/**",
+                                "/favicon.ico"
+                        ).permitAll()
+
+                        // ✅ 其他 API 需要认证
+                        .requestMatchers("/api/**").authenticated()
+
+                        // ❗ 其他全部放行（否则页面会 403）
+                        .anyRequest().permitAll()
                 )
 
-                // 无状态（JWT 必须）
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // JWT 必须无状态
+                .sessionManagement(sess -> sess
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
 
-        // 加 JWT 过滤器
-        http.addFilterBefore(new JwtFilter(jwtUtil, userRepository),
-                UsernamePasswordAuthenticationFilter.class);
+        // ✅ 加 JWT 过滤器
+        http.addFilterBefore(
+                new JwtFilter(jwtUtil, userRepository),
+                UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
@@ -78,9 +100,16 @@ public class SecurityConfig {
 
             String username = null;
             String jwt = null;
+            String path = request.getRequestURI();
+
+            // ✅ 只拦 API
+            if (!path.startsWith("/api/")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             // ✅ 放行登录接口（非常重要）
-            String path = request.getRequestURI();
+
             if (path.contains("/api/auth/login") || path.contains("/api/auth/register")) {
                 filterChain.doFilter(request, response);
                 return;

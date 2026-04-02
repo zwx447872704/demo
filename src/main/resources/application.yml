@@ -25,7 +25,12 @@ jwt:
   refresh-expire: 604800    # 7天（秒）
 
 vaadin:
-  launch-browser: true
+  launch-browser: false
+  frontend:
+    url: http://localhost:5173
+  productionMode: false
+  dev-mode:
+    enabled: true
 
 app:
   api:
